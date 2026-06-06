@@ -1,0 +1,11 @@
+int count = 0, curr = gaDen;
+int temp[MAX_NODES];
+while (curr != -1) {
+    temp[count++] = curr;
+    curr = prev_node[curr];
+}
+path_length = count;
+for (int i = 0; i < count; i++) {
+    trace_path[i] = temp[count - 1 - i];
+}
+
