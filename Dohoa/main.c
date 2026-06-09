@@ -63,6 +63,8 @@ int main(void) {
     
     bool has_result = false;
     int trace_path[MAX_NODES]; 
+    int normal_trace_path[MAX_NODES]; 
+    int normal_trace_count = 0;
     int path_wait_times[MAX_NODES] = {0}; 
     int path_walk_times[MAX_NODES] = {0}; 
     int path_length = 0;
@@ -73,7 +75,7 @@ int main(void) {
     int broken_station = -1;     // Ga phía trước bị sập
     int history_time = 0;        // Tổng thời gian ĐÃ ĐI trước sự cố
     int history_cost = 0;        // Tổng tiền vé ĐÃ ĐI trước sự cố
-
+    int rescue_start_index = 0;
     int normal_time = 0;
     int normal_cost = 0;
     int normal_penalty = 0;
@@ -118,6 +120,7 @@ int main(void) {
                 gaDi = -1; gaDen = -1; has_result = false; path_length = 0;
                 has_disruption = false; current_station = -1; broken_station = -1; 
                 history_time = 0; history_cost = 0; strcpy(penalty_text, "");
+                rescue_start_index = 0;
             }
 
             if (CheckCollisionPointRec(mousePos, btn_TimDuong) && gaDi != -1 && gaDen != -1) {
@@ -154,6 +157,10 @@ int main(void) {
                     path_length = count;
                     for (int i = 0; i < count; i++) {
                         trace_path[i] = temp[count - 1 - i];
+                    }
+                    normal_trace_count = count;
+                    for (int i = 0; i < count; i++) {
+                        normal_trace_path[i] = trace_path[i];
                     }
                     // Đảo ngược mảng xong thì chèn đoạn này vào:
                     // LƯU KẾT QUẢ CỦA LẦN TÌM ĐƯỜNG 1 (BÌNH THƯỜNG)
@@ -307,6 +314,7 @@ int main(void) {
                     
                     // 4. NỐI MẢNG NẾU TÌM ĐƯỢC ĐƯỜNG
                     if (dist_time[gaDen] != INF) {
+                        rescue_start_index = cut_index;
                         int new_path[MAX_NODES]; int new_count = 0; int curr = gaDen;
                         while (curr != -1) { new_path[new_count++] = curr; curr = prev_node[curr]; }
                         
@@ -349,15 +357,40 @@ int main(void) {
         }
 
         BeginDrawing();
-            ClearBackground(RAYWHITE); 
+            // ==========================================
+            // 1. VẼ NỀN VÀ CHÚ GIẢI (Góc trên trái)
+            // ==========================================
+            ClearBackground(RAYWHITE);
+            // Tăng chiều cao hộp nền từ 150 lên 290, rộng 230 để có chỗ vẽ các ga
+            DrawRectangle(20, 20, 230, 290, Fade(LIGHTGRAY, 0.8f)); 
+            DrawText("CHU GIAI BAN DO:", 30, 30, 16, DARKGRAY);
             
-            DrawRectangle(20, 20, 250, 170, Fade(LIGHTGRAY, 0.3f));
-            DrawText("CHU GIAI TUYEN:", 30, 30, 20, BLACK);
-            DrawLineEx((Vector2){30, 60}, (Vector2){70, 60}, 5.0f, C_JR);     DrawText("JR Yamanote", 80, 50, 20, DARKGRAY);
-            DrawLineEx((Vector2){30, 85}, (Vector2){70, 85}, 5.0f, C_GINZA);  DrawText("Ginza Line", 80, 75, 20, DARKGRAY);
-            DrawLineEx((Vector2){30, 110}, (Vector2){70, 110}, 5.0f, C_MARU); DrawText("Marunouchi Line", 80, 100, 20, DARKGRAY);
-            DrawLineEx((Vector2){30, 135}, (Vector2){70, 135}, 5.0f, C_HIBIYA);DrawText("Hibiya Line", 80, 125, 20, DARKGRAY);
-            DrawLineEx((Vector2){30, 160}, (Vector2){70, 160}, 5.0f, C_FUKU); DrawText("Fukutoshin Line", 80, 150, 20, DARKGRAY);
+            // Chú giải Tuyến (Việt hóa)
+            DrawLineEx((Vector2){30, 60}, (Vector2){70, 60}, 4, LIME);      DrawText("Tuyen JR Yamanote", 80, 52, 16, DARKGRAY);
+            DrawLineEx((Vector2){30, 80}, (Vector2){70, 80}, 4, ORANGE);    DrawText("Tuyen Ginza", 80, 72, 16, DARKGRAY);
+            DrawLineEx((Vector2){30, 100}, (Vector2){70, 100}, 4, RED);     DrawText("Tuyen Marunouchi", 80, 92, 16, DARKGRAY);
+            DrawLineEx((Vector2){30, 120}, (Vector2){70, 120}, 4, GRAY);    DrawText("Tuyen Hibiya", 80, 112, 16, DARKGRAY);
+            DrawLineEx((Vector2){30, 140}, (Vector2){70, 140}, 4, BROWN);   DrawText("Tuyen Fukutoshin", 80, 132, 16, DARKGRAY);
+
+            // Kẻ đường gạch ngang phân cách
+            DrawLineEx((Vector2){30, 165}, (Vector2){220, 165}, 1, DARKGRAY); 
+
+            // Chú giải các loại Ga (Bổ sung theo feedback của thầy)
+            // Ga Bình Thường
+            DrawCircle(50, 185, 8, BLACK); DrawCircle(50, 185, 5, RAYWHITE);
+            DrawText("Ga Binh Thuong", 75, 177, 16, DARKGRAY);
+            
+            // Ga Đi
+            DrawCircle(50, 215, 8, GREEN);
+            DrawText("Ga Di", 75, 207, 16, DARKGRAY);
+            
+            // Ga Đến
+            DrawCircle(50, 245, 8, RED);
+            DrawText("Ga Den", 75, 237, 16, DARKGRAY);
+            
+            // Ga Sự Cố
+            DrawCircle(50, 275, 10, Fade(RED, 0.7f)); DrawText("X", 46, 268, 14, WHITE);
+            DrawText("Ga Gap Su Co", 75, 267, 16, DARKGRAY);
 
             for (int i = 0; i < total_edges; i++) {
                 int gA = map_edges[i].gaA; int gB = map_edges[i].gaB;
@@ -374,36 +407,103 @@ int main(void) {
             }
 
             if (has_result) {
-                for (int i = 0; i < path_length - 1; i++) {
-                    int gaU = trace_path[i]; int gaV = trace_path[i+1];
-                    int c_offsetX = 0; int c_offsetY = 0; Color routeColor = BLACK; 
-                    for (int j = 0; j < total_edges; j++) {
-                        if ((map_edges[j].gaA == gaU && map_edges[j].gaB == gaV) || (map_edges[j].gaA == gaV && map_edges[j].gaB == gaU)) {
-                            c_offsetX = map_edges[j].curveOffsetX; c_offsetY = map_edges[j].curveOffsetY; routeColor = map_edges[j].color; break;
+                // 1. VẼ ĐƯỜNG LỊCH SỬ VÀ ĐOẠN ĐỎ SỰ CỐ
+                if (has_disruption && broken_station != -1) {
+                    // Tìm vị trí của ga bị sập trong lộ trình gốc
+                    int broken_idx = -1;
+                    for (int k = 0; k < normal_trace_count; k++) {
+                        if (normal_trace_path[k] == broken_station) {
+                            broken_idx = k; break;
                         }
                     }
-                    Vector2 start = {stations[gaU].drawX, stations[gaU].drawY}; Vector2 end = {stations[gaV].drawX, stations[gaV].drawY};
                     
+                    // CHỈ VẼ từ điểm xuất phát đến ĐÚNG ga bị sập (Bỏ qua hoàn toàn phần đuôi chưa đi)
+                    if (broken_idx > 0) {
+                        for (int i = 0; i < broken_idx; i++) {
+                            int gaU = normal_trace_path[i]; 
+                            int gaV = normal_trace_path[i+1];
+                            int c_offsetX = 0; int c_offsetY = 0; Color routeColor = BLACK; 
+                            
+                            for (int j = 0; j < total_edges; j++) {
+                                if ((map_edges[j].gaA == gaU && map_edges[j].gaB == gaV) || 
+                                    (map_edges[j].gaA == gaV && map_edges[j].gaB == gaU)) {
+                                    c_offsetX = map_edges[j].curveOffsetX; 
+                                    c_offsetY = map_edges[j].curveOffsetY; 
+                                    routeColor = map_edges[j].color; 
+                                    break;
+                                }
+                            }
+                            
+                            Vector2 start = {stations[gaU].drawX, stations[gaU].drawY}; 
+                            Vector2 end = {stations[gaV].drawX, stations[gaV].drawY};
+                            
+                            // Đoạn cuối cùng đâm vào ga sập -> Màu ĐỎ. Các đoạn trước đó -> ĐEN an toàn.
+                            Color historyBorder = (i == broken_idx - 1) ? RED : BLACK;
+
+                            if (c_offsetX == 0 && c_offsetY == 0) { 
+                                DrawLineEx(start, end, 14.0f, historyBorder); 
+                                DrawLineEx(start, end, 6.0f, routeColor);   
+                            } else {             
+                                Vector2 control = { (start.x + end.x)/2.0f + c_offsetX, (start.y + end.y)/2.0f + c_offsetY };
+                                DrawLineEx(start, control, 14.0f, historyBorder); 
+                                DrawLineEx(control, end, 14.0f, historyBorder); 
+                                DrawCircle(control.x, control.y, 7.0f, historyBorder);
+                                
+                                DrawLineEx(start, control, 6.0f, routeColor); 
+                                DrawLineEx(control, end, 6.0f, routeColor); 
+                                DrawCircle(control.x, control.y, 3.0f, routeColor);
+                            }
+                        }
+                    }
+                }
+
+                // 2. VẼ ĐƯỜNG MỚI CHÍNH THỨC (VIỀN XANH LÁ HOẶC ĐEN)
+                // Đã gỡ bỏ toàn bộ code toán học Vector dạt pixel (offset) cho nhẹ code
+                for (int i = 0; i < path_length - 1; i++) {
+                    int gaU = trace_path[i]; 
+                    int gaV = trace_path[i+1];
+                    int c_offsetX = 0; int c_offsetY = 0; Color routeColor = BLACK; 
+                    
+                    for (int j = 0; j < total_edges; j++) {
+                        if ((map_edges[j].gaA == gaU && map_edges[j].gaB == gaV) || 
+                            (map_edges[j].gaA == gaV && map_edges[j].gaB == gaU)) {
+                            c_offsetX = map_edges[j].curveOffsetX; 
+                            c_offsetY = map_edges[j].curveOffsetY; 
+                            routeColor = map_edges[j].color; 
+                            break;
+                        }
+                    }
+                    
+                    Vector2 start = {stations[gaU].drawX, stations[gaU].drawY}; 
+                    Vector2 end = {stations[gaV].drawX, stations[gaV].drawY};
+                    
+                    // NẾU LÀ ĐOẠN LỊCH SỬ -> ĐEN. NẾU LÀ ĐOẠN CỨU HỘ MỚI -> XANH LÁ
+                    Color borderColor = (has_disruption && i >= rescue_start_index) ? GREEN : BLACK;
+
                     if (c_offsetX == 0 && c_offsetY == 0) { 
-                        DrawLineEx(start, end, 14.0f, BLACK); DrawLineEx(start, end, 6.0f, routeColor);   
+                        DrawLineEx(start, end, 14.0f, borderColor); 
+                        DrawLineEx(start, end, 6.0f, routeColor);   
                     } else {             
                         Vector2 control = { (start.x + end.x)/2.0f + c_offsetX, (start.y + end.y)/2.0f + c_offsetY };
-                        DrawLineEx(start, control, 14.0f, BLACK); DrawLineEx(control, end, 14.0f, BLACK); DrawCircle(control.x, control.y, 7.0f, BLACK);
-                        DrawLineEx(start, control, 6.0f, routeColor); DrawLineEx(control, end, 6.0f, routeColor); DrawCircle(control.x, control.y, 3.0f, routeColor);
+                        DrawLineEx(start, control, 14.0f, borderColor); 
+                        DrawLineEx(control, end, 14.0f, borderColor); 
+                        DrawCircle(control.x, control.y, 7.0f, borderColor);
+                        
+                        DrawLineEx(start, control, 6.0f, routeColor); 
+                        DrawLineEx(control, end, 6.0f, routeColor); 
+                        DrawCircle(control.x, control.y, 3.0f, routeColor);
                     }
-
                     // ========================================================
                     // VỊ TRÍ 5: VẼ CHỮ BÁM DỌC TUYẾN (Khối 2 dòng - Chống đè tuyệt đối)
                     // ========================================================
+                    float dxText = stations[gaV].drawX - stations[gaU].drawX;
+                    float dyText = stations[gaV].drawY - stations[gaU].drawY;
+                    float lengthText = sqrtf(dxText*dxText + dyText*dyText);
+                    if (lengthText == 0) lengthText = 1;
                     
-                    float dx = stations[gaV].drawX - stations[gaU].drawX;
-                    float dy = stations[gaV].drawY - stations[gaU].drawY;
-                    float length = sqrtf(dx*dx + dy*dy);
-                    if (length == 0) length = 1;
-                    
-                    float dirX = dx / length; // Hướng dọc theo tuyến
-                    float dirY = dy / length; 
-                    float normX = -dirY;      // Hướng dạt ra lề
+                    float dirX = dxText / lengthText; 
+                    float dirY = dyText / lengthText; 
+                    float normX = -dirY;      
                     float normY = dirX;       
 
                     // 1. Hiển thị đi bộ trung chuyển NGOÀI TRỜI (Màu PURPLE)
@@ -420,36 +520,30 @@ int main(void) {
                         DrawText(walk_text, textX, textY, 14, PURPLE);
                     } 
                     
-                    // 2 & 3. Hiển thị Đổi line và Chờ tàu (Xếp thành khối 2 dòng gọn gàng)
+                    // 2 & 3. Hiển thị Đổi tuyến và Chờ tàu
                     if ((path_walk_times[i] > 0 && map[gaU][gaV].line_ID != 0) || path_wait_times[i] > 0) {
                         
-                        // Tìm một điểm "neo" cách ga 45px và dạt ra lề đường ray 20px
                         int anchorX = stations[gaU].drawX + dirX * 45 + normX * 20;
                         int anchorY = stations[gaU].drawY + dirY * 45 + normY * 20;
                         
-                        int currentY = anchorY - 7; // Tọa độ Y bắt đầu vẽ chữ
+                        int currentY = anchorY - 7; 
                         
-                        // Vẽ dòng 1: Đổi line (nếu có)
                         if (path_walk_times[i] > 0 && map[gaU][gaV].line_ID != 0) {
-                            const char* doi_text = TextFormat("Doi line: %dp", path_walk_times[i]);
+                            const char* doi_text = TextFormat("Doi tuyen: %dp", path_walk_times[i]);
                             int tWidth = MeasureText(doi_text, 14);
                             DrawText(doi_text, anchorX - tWidth / 2, currentY, 14, MAGENTA);
                             
-                            // Tự động dời tọa độ Y xuống 16 pixel (tạo hiệu ứng Enter xuống dòng)
                             currentY += 16; 
                         }
 
-                        // Vẽ dòng 2: Chờ tàu (nếu có)
                         if (path_wait_times[i] > 0) {
                             const char* cho_text = TextFormat("Cho tau: %dp", path_wait_times[i]);
                             int tWidth = MeasureText(cho_text, 14);
                             DrawText(cho_text, anchorX - tWidth / 2, currentY, 14, ORANGE);
                         }
                     }
-                    // ========================================================
-                }
-            }
-            
+                } // KẾT THÚC VÒNG LẶP FOR VẼ ĐƯỜNG MỚI
+            } // KẾT THÚC IF HAS_RESULT
             for (int i = 0; i < 22; i++) {
                 DrawCircle(stations[i].drawX, stations[i].drawY, 8, BLACK);
                 DrawCircle(stations[i].drawX, stations[i].drawY, 5, WHITE); 
@@ -473,7 +567,7 @@ int main(void) {
             DrawText(TextFormat("Ga Den : %s", gaDen != -1 ? stations[gaDen].name : "[Click tren map]"), menuX + 15, 90, 20, DARKGRAY);
 
             DrawRectangleRec(btn_JR, is_JR_ON ? GREEN : LIGHTGRAY);
-            DrawText(TextFormat("JR PASS: %s", is_JR_ON ? "ON" : "OFF"), btn_JR.x + 8, btn_JR.y + 6, 18, BLACK);
+            DrawText(TextFormat("JR PASS: %s", is_JR_ON ? "BAT" : "TAT"), btn_JR.x + 8, btn_JR.y + 6, 18, BLACK);
 
             DrawRectangleRec(btn_TieuChi, LIGHTGRAY);
             const char* str_tc = (criteria == 1) ? "Nhanh Nhat" : (criteria == 2) ? "Re Nhat" : "Can Bang";

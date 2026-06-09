@@ -37,4 +37,4 @@ void ApplyJRPass_Mix();
 void LoadData(char *filename);
 void DijkstraAdvanced(int start, int end, int criteria, int start_time, int start_line);
 int GetLineFrequency(int line_id);
-#endifß
+#endif
